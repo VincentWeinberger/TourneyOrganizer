@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background-color: #e5e5f7;
+  opacity: 1;
+  background-image: linear-gradient(
+      30deg,
+      #f7a845 12%,
+      transparent 12.5%,
+      transparent 87%,
+      #f7a845 87.5%,
+      #f7a845
+    ),
+    linear-gradient(
+      150deg,
+      #f7a845 12%,
+      transparent 12.5%,
+      transparent 87%,
+      #f7a845 87.5%,
+      #f7a845
+    ),
+    linear-gradient(
+      30deg,
+      #f7a845 12%,
+      transparent 12.5%,
+      transparent 87%,
+      #f7a845 87.5%,
+      #f7a845
+    ),
+    linear-gradient(
+      150deg,
+      #f7a845 12%,
+      transparent 12.5%,
+      transparent 87%,
+      #f7a845 87.5%,
+      #f7a845
+    ),
+    linear-gradient(
+      60deg,
+      #f7a84577 25%,
+      transparent 25.5%,
+      transparent 75%,
+      #f7a84577 75%,
+      #f7a84577
+    ),
+    linear-gradient(
+      60deg,
+      #f7a84577 25%,
+      transparent 25.5%,
+      transparent 75%,
+      #f7a84577 75%,
+      #f7a84577
+    );
+  background-size: 80px 140px;
+  background-position: 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px;
+}
