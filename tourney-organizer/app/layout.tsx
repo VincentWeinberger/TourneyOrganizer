@@ -1,5 +1,6 @@
 import './globals.css'
 import { Climate_Crisis } from "next/font/google"
+import Script from "next/script"
 
 const cc = Climate_Crisis({subsets: ['latin']})
 
@@ -16,6 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={cc.className}>{children}</body>
+      <Script src="https://kit.fontawesome.com/fa314c8795.js" crossOrigin="anonymous"/>
     </html>
   )
 }
