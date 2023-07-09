@@ -149,6 +149,13 @@ NEW TOURNEY
   /* color: var(--colorSecondary); */
 }
 
+.dialogBtn {
+  padding: 0.15rem;
+  margin: 0.25rem;
+  border-width: 2px;
+  width: 3rem;
+}
+
 body {
   background-color: #e5e5f7;
   background-image: linear-gradient(
