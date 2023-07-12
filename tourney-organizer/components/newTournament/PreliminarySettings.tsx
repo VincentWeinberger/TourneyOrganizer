@@ -9,7 +9,7 @@ import React, {
   KeyboardEvent,
 } from "react"
 import { Tourney, Inconsolata } from "next/font/google"
-import { JsxElement } from "typescript"
+// import { JsxElement } from "typescript"
 
 const tourney = Tourney({ subsets: ["latin"] })
 const incFont = Inconsolata({ subsets: ["latin"] })
@@ -69,24 +69,26 @@ const PreliminarySettings = () => {
     setDefaultNaming(false)
   }
 
+  //OnChange
   const singleCheckHandler = (): void => {
     if (singleChecked === true) return
     setSingleChecked(true)
     setDoubleChecked(false)
   }
 
-  //Onchange handler called when user clicks the 'Double Elimination' radio button.
+  // OnChange handler called when user clicks the 'Double Elimination' radio button.
   const doubleCheckHandler = (): void => {
     if (doubleChecked === true) return
     setDoubleChecked(true)
     setSingleChecked(false)
   }
 
-  //Onchange handler to call when user clicks the 'Seeded' checkbox.
+  // OnChange handler to call when user clicks the 'Seeded' checkbox.
   const seededCheckHandler = (): void => {
     setSeededChecked((prev) => !prev)
   }
 
+  //Helper function that will be called within the 'createTournamentObj' function to create an array of objects, of type Player, with default team/player names.
   const populateGenericNames = (): Array<Player> => {
     const newParticipantsArr = new Array<Player>()
 
@@ -101,6 +103,8 @@ const PreliminarySettings = () => {
     return newParticipantsArr
   }
 
+  //This function will create a tournament object, of type Tournament, that will be stored in state and manipulated until the user is ready to confirm the Tournament settings.
+  //After the user reviews and verifies the settings, this object will be JSON stringified and stored in local storage to be referenced and changed based on how the tournament plays out.
   const createTournamentObj = () => {
     const newTournamentObj: Tournament = {
       numPlayers: numPlayers,
@@ -111,25 +115,9 @@ const PreliminarySettings = () => {
     }
 
     setTournamentObj({ ...newTournamentObj })
-    // manualInputRefs.current = newTournamentObj["participants"].map(
-    //   (playerObj: Player, index: number) => (
-    //     <input
-    //       key={index}
-    //       className={`${
-    //         currNamingIndex === index ? "" : "hidden"
-    //       } text-xs md:text-sm lg:text-base text-violet-500 focus:outline-violet-700 text-center w-3/4`}
-    //       type="text"
-    //       name="playerNames"
-    //       value={playerObj.manualName}
-    //       placeholder={playerObj.defaultName}
-    //       onChange={(e) => handleManualPlayerEntry(e)}
-    //       onKeyDown={(e) => manualFieldKeyPressHandler(e)}
-    //       autoFocus={true}
-    //     />
-    //   )
-    // )
   }
 
+  //This function will assure that user input fields are valid on the first page of tournament creation.
   const validateNewTourneyForm = (): boolean => {
     let playerErrors = true
     let sportErrors = true
@@ -146,6 +134,8 @@ const PreliminarySettings = () => {
     return true
   }
 
+  //This handler will call the 'validateNewTourneyForm' function and will move on to the next set of inputs if the current ones are valid.
+  //It also handles the case where the user has set their selected sport to 'other', which prompts a modal dialog popup.
   const handleNextMenu = (e: FormEvent): void => {
     e.preventDefault()
     if (!validateNewTourneyForm()) return
@@ -153,12 +143,11 @@ const PreliminarySettings = () => {
       if (sportDialog.current) sportDialog.current.showModal()
       return
     }
-    console.log("CREATING TOURNAMENT OBJ")
     createTournamentObj()
-    console.log("TOURNAMENT OBJECT COMPLETED: ", tournamentObj)
     setMenuShowing("signups")
   }
 
+  //This function will be called in the case where the user has been prompted by the modal dialog popup and clicks 'Yes' indicating that they agree to not using 'Scorekeeper'
   const handleDialogSubmit = (e: FormEvent): void => {
     e.preventDefault()
     createTournamentObj()
@@ -166,6 +155,7 @@ const PreliminarySettings = () => {
     if (sportDialog.current) sportDialog.current.close()
   }
 
+  //OnChange handler for when a user is typing their team/player names into the text input field on the second settings menu
   const handleManualPlayerEntry = (e: ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value
     let index = currNamingIndex
@@ -178,17 +168,23 @@ const PreliminarySettings = () => {
     setTournamentObj(newTournamentObj)
   }
 
+  //This function provides an integral quality of life/ease-of-use that allows users to quickly type in team/player names, hit the enter button, and continue typing the next name.
+  //This allows the user a quick and easy way to input multiple names as fast as possible.
   const manualFieldKeyPressHandler = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       setCurrNamingIndex((prev) => prev + 1)
     }
   }
 
+  //The 'currNamingIndex' state value will control which text input is shown to the user for name entry.
+
+  //This will decrement the 'currNamingIndex' state value and assures that it cannot go below the 1st team/player.
   const manualNameingBackBtnHandler = () => {
     if (currNamingIndex === 0) return
     setCurrNamingIndex((prev) => prev - 1)
   }
 
+  //This will increment the 'currNamingIndex' state value and assures that it cannot go above the last team/player.
   const manualNamingNextBtnHandler = () => {
     if (currNamingIndex === tournamentObj["participants"].length - 1) return
     setCurrNamingIndex((prev) => prev + 1)
