@@ -15,17 +15,45 @@ const tourney = Tourney({ subsets: ["latin"] })
 const incFont = Inconsolata({ subsets: ["latin"] })
 
 type Player = {
-  defaultName: string
-  manualName: string
-  seed: number
+  defaultName: string,
+  manualName: string,
+  seed: number,
+  gameWins: number,
+  matchLosses: number,
+
 }
 
 type Tournament = {
-  numPlayers: number
-  knockoutChoice: string
-  seeded: boolean
-  sportChoice: string
-  participants: Array<Player>
+  numPlayers: number,
+  knockoutChoice: string,
+  seeded: boolean,
+  sportChoice: string,
+  participants: Array<Player>,
+}
+
+type Match = {
+  bestOf: number,
+  winner: string,
+  players: Array<Player>
+}
+
+type BestOfSettings = {
+  normal: number,
+  qf: number,
+  sf: number,
+  finals: number
+}
+
+type TournamentFinalized = Tournament & {tournamentId: string, tournamentName: string, namingChoice: string, games: Array<Match>, round: number, bestOfSettings: BestOfSettings}
+
+type NamingErrors = {
+  charLengthError: boolean
+  sameNameError: boolean
+}
+
+type SeedErrors = {
+  numberRangeError: boolean
+  sameSeedError: boolean
 }
 
 const PreliminarySettings = () => {
@@ -37,20 +65,36 @@ const PreliminarySettings = () => {
   const [showNumPlayerErrors, setShowNumPlayerErrors] = useState(false)
   const [showSportErrors, setShowSportErrors] = useState(false)
   const [menuShowing, setMenuShowing] = useState("prelim")
-  const [tournamentObj, setTournamentObj] = useState<any | Tournament>(null)
+  const [tournamentObj, setTournamentObj] = useState<Tournament>({
+    numPlayers: 2,
+    knockoutChoice: "single",
+    seeded: false,
+    sportChoice: "",
+    participants: [],
+  })
   const [defaultNaming, setDefaultNaming] = useState(true)
   const [manualNaming, setManualNaming] = useState(false)
   const [currNamingIndex, setCurrNamingIndex] = useState(-1)
+  const [manualNamingFinished, setManualNamingFinished] = useState(false)
+  const [namingErrors, setNamingErrors] = useState<NamingErrors>({
+    charLengthError: false,
+    sameNameError: false,
+  })
+  const [seedErrors, setSeedErrors] = useState<SeedErrors>({
+    numberRangeError: false,
+    sameSeedError: false,
+  })
 
   const sportDialog = useRef<HTMLDialogElement>(null)
-  const manualInputRefs = useRef(new Array<HTMLInputElement>())
+  const manualNamingRefs = useRef(new Array<HTMLInputElement>())
+  const manualSeedRefs = useRef(new Array<HTMLInputElement>())
 
   useEffect(() => {
-    if (manualInputRefs.current[currNamingIndex]) {
-      manualInputRefs.current[currNamingIndex].focus()
+    if (manualNamingRefs.current[currNamingIndex]) {
+      manualNamingRefs.current[currNamingIndex].focus()
       console.log(
         "SHOULD ABE FOCUSED ON THIS ELEMENT: ",
-        manualInputRefs.current[currNamingIndex]
+        manualNamingRefs.current[currNamingIndex]
       )
     }
   }, [currNamingIndex])
@@ -96,7 +140,9 @@ const PreliminarySettings = () => {
       newParticipantsArr.push({
         defaultName: `Team/Player ${i}`,
         manualName: "",
-        seed: 0,
+        seed: i,
+        gameWins: 0,
+        matchLosses: 0
       })
     }
 
@@ -123,15 +169,94 @@ const PreliminarySettings = () => {
     let sportErrors = true
     if (!numPlayers || numPlayers < 2 || numPlayers > 128) {
       setShowNumPlayerErrors(true)
-    } else playerErrors = false
+    } else {
+      playerErrors = false
+      setShowNumPlayerErrors(false)
+    }
     if (sportSelected === "") {
       setShowSportErrors(true)
-    } else sportErrors = false
+    } else {
+      sportErrors = false
+      setShowSportErrors(false)
+    }
 
     if (playerErrors === true || sportErrors === true) return false
-    setShowNumPlayerErrors(false)
-    setShowSportErrors(false)
     return true
+  }
+
+  //Returns true if there is a duplicate participant name
+  const hasDuplicateParticipantName = (name: string): boolean => {
+    let instanceOfNameCount = 0
+    tournamentObj["participants"].forEach((playerObj) => {
+      if (playerObj.manualName === name) instanceOfNameCount++
+    })
+    if (instanceOfNameCount > 1) return true
+    return false
+  }
+
+  //Returns true if there is a duplicate participant seed number
+  const hasDuplicateParticipantSeed = (seedNumber: number): boolean => {
+    let instanceOfSeedCount = 0
+    tournamentObj["participants"].forEach((playerObj) => {
+      if (playerObj.seed === seedNumber) instanceOfSeedCount++
+    })
+    if (instanceOfSeedCount > 1) return true
+    return false
+  }
+
+  //Check if each submission of a participant name and/or seed number is valid
+  const isValidParticipant = (): boolean => {
+    let nameLengthIsValid = false
+    let nameUniqueIsValid = false
+    let seedRangeIsValid = false
+    let seedUniqueIsValid = false
+    const participantObj: Player = tournamentObj.participants[currNamingIndex]
+    const participantName =
+      participantObj.manualName === ""
+        ? participantObj.defaultName
+        : participantObj.manualName
+
+    if (participantName.length < 21 && participantName.length > 2) {
+      nameLengthIsValid = true
+      setNamingErrors({ ...namingErrors, charLengthError: false })
+    } else {
+      nameLengthIsValid = false
+    }
+    if (hasDuplicateParticipantName(participantName) === false) {
+      nameUniqueIsValid = true
+    } else {
+      nameUniqueIsValid = false
+    }
+    let seedNum = participantObj.seed
+    if (seedNum <= tournamentObj.numPlayers && seedNum > 0) {
+      seedRangeIsValid = true
+    } else {
+      seedRangeIsValid = false
+    }
+    if (hasDuplicateParticipantSeed(seedNum) === false) {
+      seedUniqueIsValid = true
+    } else {
+      seedUniqueIsValid = false
+    }
+
+    setNamingErrors({
+      charLengthError: !nameLengthIsValid,
+      sameNameError: !nameUniqueIsValid,
+    })
+
+    setSeedErrors({
+      numberRangeError: !seedRangeIsValid,
+      sameSeedError: !seedUniqueIsValid,
+    })
+
+    if (
+      nameLengthIsValid === true &&
+      nameUniqueIsValid === true &&
+      seedRangeIsValid === true &&
+      seedUniqueIsValid === true
+    )
+      return true
+    return false
   }
 
   //This handler will call the 'validateNewTourneyForm' function and will move on to the next set of inputs if the current ones are valid.
@@ -155,6 +280,12 @@ const PreliminarySettings = () => {
     if (sportDialog.current) sportDialog.current.close()
   }
 
+  const participantNamingSubmit = (e: FormEvent): void => {
+    e.preventDefault()
+    if(defaultNaming === true)
+
+  }
+
   //OnChange handler for when a user is typing their team/player names into the text input field on the second settings menu
   const handleManualPlayerEntry = (e: ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value
@@ -168,11 +299,41 @@ const PreliminarySettings = () => {
     setTournamentObj(newTournamentObj)
   }
 
+  //OnChange handler for when a user is typing their seed # into the text input field on the second settings menu
+  const handleManualSeedEntry = (e: ChangeEvent<HTMLInputElement>) => {
+    let value = +e.target.value
+    let index = currNamingIndex
+    const newParticipantsArr: Player[] = [...tournamentObj.participants]
+    newParticipantsArr[index].seed = value
+    const newTournamentObj: Tournament = {
+      ...tournamentObj,
+      participants: newParticipantsArr,
+    }
+    setTournamentObj(newTournamentObj)
+  }
+
   //This function provides an integral quality of life/ease-of-use that allows users to quickly type in team/player names, hit the enter button, and continue typing the next name.
   //This allows the user a quick and easy way to input multiple names as fast as possible.
   const manualFieldKeyPressHandler = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      setCurrNamingIndex((prev) => prev + 1)
+      e.preventDefault()
+      if (
+        tournamentObj.seeded === true &&
+        document.activeElement === manualNamingRefs.current[currNamingIndex]
+      ) {
+        manualSeedRefs.current[currNamingIndex].focus()
+        return
+      }
+      if (
+        currNamingIndex === tournamentObj.numPlayers - 1 &&
+        isValidParticipant()
+      ) {
+        setManualNamingFinished(true)
+        return
+      }
+      if (isValidParticipant() === true) {
+        setCurrNamingIndex((prev) => prev + 1)
+      }
     }
   }
 
@@ -181,13 +342,28 @@ const PreliminarySettings = () => {
   //This will decrement the 'currNamingIndex' state value and assures that it cannot go below the 1st team/player.
   const manualNameingBackBtnHandler = () => {
     if (currNamingIndex === 0) return
+    if (currNamingIndex === tournamentObj.numPlayers - 1)
+      setManualNamingFinished(false)
     setCurrNamingIndex((prev) => prev - 1)
   }
 
   //This will increment the 'currNamingIndex' state value and assures that it cannot go above the last team/player.
   const manualNamingNextBtnHandler = () => {
-    if (currNamingIndex === tournamentObj["participants"].length - 1) return
-    setCurrNamingIndex((prev) => prev + 1)
+    console.log(
+      "NAME LENGTH: ",
+      tournamentObj.participants[currNamingIndex].manualName.length
+    )
+    console.log("ERROR STATUS OF NAME LENGTH: ", namingErrors.charLengthError)
+    if (
+      currNamingIndex === tournamentObj.numPlayers - 1 &&
+      isValidParticipant()
+    ) {
+      setManualNamingFinished(true)
+      return
+    }
+    if (isValidParticipant() === true) {
+      setCurrNamingIndex((prev) => prev + 1)
+    }
   }
 
   return (
@@ -216,7 +392,7 @@ const PreliminarySettings = () => {
               (showNumPlayerErrors === true ? "opacity-100" : "opacity-0")
             }
           >
-            Please choose a value within the range of 2 - 128
+            Please choose a value within the range of 2 - 128.
           </span>
         </div>
         <div className="flex flex-col justify-center items-center">
@@ -303,7 +479,7 @@ const PreliminarySettings = () => {
               (showSportErrors === true ? "opacity-100" : "opacity-0")
             }
           >
-            Please select a sport
+            Please select a sport.
           </span>
         </div>
         <button
@@ -348,7 +524,8 @@ const PreliminarySettings = () => {
       <form
         className={`${
           menuShowing === "signups" ? "flex" : "hidden"
-        } flex-col gap-16 justify-center items-center text-xl md:text-2xl xl:text-3xl text-slate-600`}
+        } flex-col gap-10 justify-center items-center text-xl md:text-2xl xl:text-3xl text-slate-600`}
+        onSubmit={(e) => participantNamingSubmit(e)}
       >
         <div className="flex flex-col justify-center items-center">
           <label className="pb-3">Name Teams/Players?</label>
@@ -392,43 +569,124 @@ const PreliminarySettings = () => {
             manualNaming === true ? "flex" : "hidden"
           } flex-col justify-center items-center gap-5`}
         >
-          <label htmlFor="manualNameEntry">Enter Team/Player Names:</label>
-          {tournamentObj
-            ? tournamentObj["participants"].map(
-                (playerObj: Player, index: number) => (
-                  <div
-                    className={`${
-                      currNamingIndex === index ? "flex" : "hidden"
-                    } gap-5`}
-                  >
-                    <button type="button" onClick={manualNameingBackBtnHandler}>
-                      <i className="fa-solid fa-circle-left text-3xl text-violet-700 bg-white rounded-full"></i>
-                    </button>
-                    <input
+          <>
+            <label htmlFor="manualNameEntry">Enter Team/Player Names:</label>
+            {tournamentObj
+              ? tournamentObj["participants"].map(
+                  (playerObj: Player, index: number) => (
+                    <div
                       key={index}
-                      ref={(element: HTMLInputElement) =>
-                        manualInputRefs.current.push(element)
-                      }
-                      className="text-xs md:text-sm lg:text-base text-violet-500 focus:outline-violet-700 text-center w-3/4"
-                      type="text"
-                      name="playerNames"
-                      value={playerObj.manualName}
-                      placeholder={playerObj.defaultName}
-                      onChange={(e) => handleManualPlayerEntry(e)}
-                      onKeyDown={(e) => manualFieldKeyPressHandler(e)}
-                    />
-                    <button type="button" onClick={manualNamingNextBtnHandler}>
-                      <i className="fa-solid fa-circle-right text-3xl text-violet-700 bg-white rounded-full"></i>
-                    </button>
-                  </div>
+                      className={`${
+                        currNamingIndex === index ? "flex" : "hidden"
+                      } gap-5`}
+                    >
+                      <button
+                        type="button"
+                        onClick={manualNameingBackBtnHandler}
+                      >
+                        <i className="fa-solid fa-circle-left text-3xl text-violet-700 bg-white rounded-full"></i>
+                      </button>
+                      <div className="flex flex-col items-center">
+                        <label className="text-sm" htmlFor="name">
+                          Name:
+                        </label>
+                        <input
+                          key={index}
+                          ref={(element: HTMLInputElement) =>
+                            manualNamingRefs.current.push(element)
+                          }
+                          className="text-xs md:text-sm lg:text-base text-violet-500 focus:outline-violet-700 text-center w-3/4"
+                          type="text"
+                          name="playerNames"
+                          value={playerObj.manualName}
+                          placeholder={playerObj.defaultName}
+                          onChange={(e) => handleManualPlayerEntry(e)}
+                          onKeyDown={(e) => manualFieldKeyPressHandler(e)}
+                        />
+                        <span
+                          className={
+                            incFont.className +
+                            " text-xs lg:text-sm text-red-500 " +
+                            (namingErrors.charLengthError === true ||
+                            namingErrors.sameNameError === true
+                              ? "opacity-100"
+                              : "opacity-0")
+                          }
+                        >
+                          {namingErrors.charLengthError === true
+                            ? "Number of characters must be within the range of 3 - 20."
+                            : "Duplicate names are not allowed."}
+                        </span>
+                        {/* <span
+                          className={
+                            incFont.className +
+                            " text-xs lg:text-sm text-red-500 " +
+                            (namingErrors.sameNameError === true
+                              ? "opacity-100"
+                              : "opacity-0")
+                          }
+                        >
+                          Duplicate names are not allowed.
+                        </span> */}
+                      </div>
+                      <div
+                        className={`${
+                          tournamentObj.seeded === true ? "flex" : "hidden"
+                        } flex-col items-center`}
+                      >
+                        <label className="text-sm" htmlFor="seed">
+                          Seed:
+                        </label>
+                        <input
+                          key={index}
+                          ref={(element: HTMLInputElement) =>
+                            manualSeedRefs.current.push(element)
+                          }
+                          className="text-xs md:text-sm lg:text-base text-violet-500 focus:outline-violet-700 text-center w-3/4"
+                          type="number"
+                          name="playerNames"
+                          value={playerObj.seed}
+                          onChange={(e) => handleManualSeedEntry(e)}
+                          onKeyDown={(e) => manualFieldKeyPressHandler(e)}
+                        />
+                        <span
+                          className={
+                            incFont.className +
+                            " text-xs lg:text-sm text-red-500 " +
+                            (seedErrors.numberRangeError === true ||
+                            seedErrors.sameSeedError === true
+                              ? "opacity-100"
+                              : "opacity-0")
+                          }
+                        >
+                          {seedErrors.numberRangeError === true
+                            ? "Seed number not within range."
+                            : "Duplicate seed numbers are not allowed."}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={manualNamingNextBtnHandler}
+                      >
+                        <i className="fa-solid fa-circle-right text-3xl text-violet-700 bg-white rounded-full"></i>
+                      </button>
+                    </div>
+                  )
                 )
-              )
-            : console.log(tournamentObj)}
-          {/* {tournamentObj &&
-            manualInputRefs.current.map(
-              (inputElement: React.JSX.Element, index: number) => inputElement
-            )} */}
+              : console.log(tournamentObj)}
+          </>
         </div>
+        <span
+          className={
+            incFont.className +
+            " text-xs lg:text-sm text-green-500 " +
+            (manualNamingFinished === true ? "opacity-100" : "opacity-0")
+          }
+        >
+          {`All participants have been named${
+            tournamentObj.seeded ? " and seeded" : ""
+          }.`}
+        </span>
         <button
           type="submit"
           className={
@@ -436,9 +694,14 @@ const PreliminarySettings = () => {
             " btn text-slate-600 hover:text-white bg-violet-400 p-1 flex flex-col items-center text-2xl"
           }
         >
-          Confirm
+          Review
         </button>
       </form>
+      <form
+        className={`${
+          menuShowing === "review" ? "flex" : "hidden"
+        } flex-col gap-16 justify-center items-center text-xl md:text-2xl xl:text-3xl text-slate-600`}
+      ></form>
     </>
   )
 }
