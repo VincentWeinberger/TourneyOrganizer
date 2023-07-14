@@ -25,10 +25,10 @@ export default function Home() {
 
   return (
     <main className="flex flex-col justify-center items-center w-screen h-screen">
-      <h1 className="heading text-violet-400 text-center text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl">
-        TOURNEY
+      <h1 className="heading text-violet-400 text-center text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl tracking-widest">
+        TOURNEY.io
       </h1>
-      <div className="menu w-2/3 md:w-1/3 xl:w-1/4 h-1/2 bg-slate-100 mt-20 rounded-xl">
+      <div className="menu w-2/3 md:w-1/3 xl:w-1/4 h-1/2 mt-20 bg-slate-100 rounded-xl">
         <ul
           className={
             tourney.className +

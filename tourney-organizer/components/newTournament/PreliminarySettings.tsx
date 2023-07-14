@@ -15,36 +15,41 @@ const tourney = Tourney({ subsets: ["latin"] })
 const incFont = Inconsolata({ subsets: ["latin"] })
 
 type Player = {
-  defaultName: string,
-  manualName: string,
-  seed: number,
-  gameWins: number,
-  matchLosses: number,
-
+  defaultName: string
+  manualName: string
+  seed: number
+  gameWins: number
+  matchLosses: number
 }
 
 type Tournament = {
-  numPlayers: number,
-  knockoutChoice: string,
-  seeded: boolean,
-  sportChoice: string,
-  participants: Array<Player>,
+  numPlayers: number
+  knockoutChoice: string
+  seeded: boolean
+  sportChoice: string
+  participants: Array<Player>
 }
 
 type Match = {
-  bestOf: number,
-  winner: string,
+  bestOf: number
+  winner: string
   players: Array<Player>
 }
 
 type BestOfSettings = {
-  normal: number,
-  qf: number,
-  sf: number,
+  normal: number
+  qf: number
+  sf: number
   finals: number
 }
 
-type TournamentFinalized = Tournament & {tournamentId: string, tournamentName: string, namingChoice: string, games: Array<Match>, round: number, bestOfSettings: BestOfSettings}
+type TournamentFinalized = Tournament & {
+  tournamentId: string
+  tournamentName: string
+  matches: Array<Match>
+  round: number
+  bestOfSettings: BestOfSettings
+}
 
 type NamingErrors = {
   charLengthError: boolean
@@ -60,6 +65,12 @@ const PreliminarySettings = () => {
   const [numPlayers, setNumPlayers] = useState(2)
   const [singleChecked, setSingleChecked] = useState(true)
   const [doubleChecked, setDoubleChecked] = useState(false)
+  const [bestOf, setBestOf] = useState<BestOfSettings>({
+    normal: 1,
+    qf: 1,
+    sf: 1,
+    finals: 1,
+  })
   const [seededChecked, setSeededChecked] = useState(false)
   const [sportSelected, setSportSelected] = useState("")
   const [showNumPlayerErrors, setShowNumPlayerErrors] = useState(false)
@@ -84,6 +95,9 @@ const PreliminarySettings = () => {
     numberRangeError: false,
     sameSeedError: false,
   })
+  const [unfinishedNamingError, setUnfinishedNamingError] = useState(false)
+  const [tournamentFinalized, setTournamentFinalized] =
+    useState<TournamentFinalized>()
 
   const sportDialog = useRef<HTMLDialogElement>(null)
   const manualNamingRefs = useRef(new Array<HTMLInputElement>())
@@ -99,9 +113,20 @@ const PreliminarySettings = () => {
     }
   }, [currNamingIndex])
 
+  const resetManualNames = () => {
+    const newParticipantsArr = tournamentObj["participants"].map(
+      (playerObj: Player, index: number) => {
+        return { ...playerObj, manualName: "" }
+      }
+    )
+    setTournamentObj({ ...tournamentObj, participants: newParticipantsArr })
+  }
+
   const defaultNamingHandler = () => {
     if (defaultNaming === true) return
-    if (currNamingIndex > -1) setCurrNamingIndex((prev) => prev - 1)
+    setCurrNamingIndex(-1)
+    resetManualNames()
+    setUnfinishedNamingError(false)
     setDefaultNaming(true)
     setManualNaming(false)
   }
@@ -127,8 +152,21 @@ const PreliminarySettings = () => {
     setSingleChecked(false)
   }
 
+  const resetSeeds = () => {
+    const newParticipantsArr: Array<Player> = tournamentObj["participants"].map(
+      (playerObj: Player, index: number) => {
+        return { ...playerObj, seed: index + 1 }
+      }
+    )
+
+    setTournamentObj({ ...tournamentObj, participants: newParticipantsArr })
+  }
+
   // OnChange handler to call when user clicks the 'Seeded' checkbox.
   const seededCheckHandler = (): void => {
+    if (seededChecked === true) {
+      resetSeeds()
+    }
     setSeededChecked((prev) => !prev)
   }
 
@@ -142,7 +180,7 @@ const PreliminarySettings = () => {
         manualName: "",
         seed: i,
         gameWins: 0,
-        matchLosses: 0
+        matchLosses: 0,
       })
     }
 
@@ -218,7 +256,6 @@ const PreliminarySettings = () => {
 
     if (participantName.length < 21 && participantName.length > 2) {
       nameLengthIsValid = true
-      setNamingErrors({ ...namingErrors, charLengthError: false })
     } else {
       nameLengthIsValid = false
     }
@@ -280,10 +317,41 @@ const PreliminarySettings = () => {
     if (sportDialog.current) sportDialog.current.close()
   }
 
+  const handleSeededTournament = () => {}
+
+  // const setMatches = (): Array<Match> => {
+  //   const matchesArr: Array<Match> = []
+  //   const defaultMatchObj: Match = {
+
+  //   }
+  // }
+
+  // const createFinalizedTournament = () => {
+  //   const newFinalizedTournament: TournamentFinalized = {
+  //     ...tournamentObj,
+  //     tournamentId: "",
+  //     tournamentName: "",
+  //     matches: setMatches(),
+  //   }
+  // }
+
   const participantNamingSubmit = (e: FormEvent): void => {
     e.preventDefault()
-    if(defaultNaming === true)
-
+    if (currNamingIndex === numPlayers - 1 && manualNamingFinished === false) {
+      if (isValidParticipant() === true) {
+        setManualNamingFinished((prev) => !prev)
+        setTimeout(() => {
+          setMenuShowing("finalize")
+        }, 1000)
+        return
+      }
+    }
+    if (defaultNaming === true || manualNamingFinished === true) {
+      setMenuShowing("finalize")
+      return
+    }
+    setUnfinishedNamingError(true)
+    // createFinalizedTournament()
   }
 
   //OnChange handler for when a user is typing their team/player names into the text input field on the second settings menu
@@ -317,6 +385,7 @@ const PreliminarySettings = () => {
   const manualFieldKeyPressHandler = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault()
+      setUnfinishedNamingError(false)
       if (
         tournamentObj.seeded === true &&
         document.activeElement === manualNamingRefs.current[currNamingIndex]
@@ -329,6 +398,7 @@ const PreliminarySettings = () => {
         isValidParticipant()
       ) {
         setManualNamingFinished(true)
+        setUnfinishedNamingError(false)
         return
       }
       if (isValidParticipant() === true) {
@@ -340,7 +410,7 @@ const PreliminarySettings = () => {
   //The 'currNamingIndex' state value will control which text input is shown to the user for name entry.
 
   //This will decrement the 'currNamingIndex' state value and assures that it cannot go below the 1st team/player.
-  const manualNameingBackBtnHandler = () => {
+  const manualNamingBackBtnHandler = () => {
     if (currNamingIndex === 0) return
     if (currNamingIndex === tournamentObj.numPlayers - 1)
       setManualNamingFinished(false)
@@ -349,10 +419,7 @@ const PreliminarySettings = () => {
 
   //This will increment the 'currNamingIndex' state value and assures that it cannot go above the last team/player.
   const manualNamingNextBtnHandler = () => {
-    console.log(
-      "NAME LENGTH: ",
-      tournamentObj.participants[currNamingIndex].manualName.length
-    )
+    setUnfinishedNamingError(false)
     console.log("ERROR STATUS OF NAME LENGTH: ", namingErrors.charLengthError)
     if (
       currNamingIndex === tournamentObj.numPlayers - 1 &&
@@ -429,6 +496,72 @@ const PreliminarySettings = () => {
                 } knockoutCheck text-violet-500 fa-solid fa-check absolute`}
               ></i>
               Double Elimination
+            </label>
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-center items-center">
+          <label className="pb-3">Match Types?</label>
+          <div className="text-sm pl-6 flex flex-col gap-5">
+            <label className="labelContainer relative hover:cursor-pointer">
+              Early Rounds:
+              <select
+                className="text-xs md:text-sm lg:text-base text-violet-500 focus:outline-violet-700 text-center w-3/4"
+                name="bestOf"
+                defaultValue="1"
+                onChange={(e) =>
+                  setBestOf({ ...bestOf, normal: +e.target.value })
+                }
+              >
+                <option value="1">1</option>
+                <option value="3">3</option>
+                <option value="5">5</option>
+                <option value="7">7</option>
+              </select>
+            </label>
+            <label className="labelContainer relative hover:cursor-pointer">
+              Quarterfinals:
+              <select
+                className="text-xs md:text-sm lg:text-base text-violet-500 focus:outline-violet-700 text-center w-3/4"
+                name="bestOf"
+                defaultValue="1"
+                onChange={(e) => setBestOf({ ...bestOf, qf: +e.target.value })}
+              >
+                <option value="1">1</option>
+                <option value="3">3</option>
+                <option value="5">5</option>
+                <option value="7">7</option>
+              </select>
+            </label>
+            <label className="labelContainer relative hover:cursor-pointer">
+              Semi-finals:
+              <select
+                className="text-xs md:text-sm lg:text-base text-violet-500 focus:outline-violet-700 text-center w-3/4"
+                name="bestOf"
+                defaultValue="1"
+                onChange={(e) => setBestOf({ ...bestOf, sf: +e.target.value })}
+              >
+                <option value="1">1</option>
+                <option value="3">3</option>
+                <option value="5">5</option>
+                <option value="7">7</option>
+              </select>
+            </label>
+            <label className="labelContainer relative hover:cursor-pointer">
+              Finals:
+              <select
+                className="text-xs md:text-sm lg:text-base text-violet-500 focus:outline-violet-700 text-center w-3/4"
+                name="bestOf"
+                defaultValue="1"
+                onChange={(e) =>
+                  setBestOf({ ...bestOf, finals: +e.target.value })
+                }
+              >
+                <option value="1">1</option>
+                <option value="3">3</option>
+                <option value="5">5</option>
+                <option value="7">7</option>
+              </select>
             </label>
           </div>
         </div>
@@ -582,7 +715,7 @@ const PreliminarySettings = () => {
                     >
                       <button
                         type="button"
-                        onClick={manualNameingBackBtnHandler}
+                        onClick={manualNamingBackBtnHandler}
                       >
                         <i className="fa-solid fa-circle-left text-3xl text-violet-700 bg-white rounded-full"></i>
                       </button>
@@ -694,14 +827,33 @@ const PreliminarySettings = () => {
             " btn text-slate-600 hover:text-white bg-violet-400 p-1 flex flex-col items-center text-2xl"
           }
         >
-          Review
+          Next
         </button>
+        <span
+          className={
+            incFont.className +
+            " text-xs lg:text-sm text-red-500 " +
+            (unfinishedNamingError === true ? "opacity-100" : "opacity-0")
+          }
+        >
+          Manual team/player naming has not been completed.
+        </span>
       </form>
       <form
         className={`${
-          menuShowing === "review" ? "flex" : "hidden"
+          menuShowing === "finalize" ? "flex" : "hidden"
         } flex-col gap-16 justify-center items-center text-xl md:text-2xl xl:text-3xl text-slate-600`}
-      ></form>
+      >
+        <div className="flex flex-col gap-4">
+          {tournamentObj["participants"].map(
+            (playerObj: Player, index: number) => (
+              <div key={index} className="flex">
+                <span>{}</span>
+              </div>
+            )
+          )}
+        </div>
+      </form>
     </>
   )
 }

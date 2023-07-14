@@ -134,7 +134,7 @@ const page = () => {
   // }
 
   return (
-    <div className="flex flex-col justify-center items-center w-screen h-screen">
+    <div className="flex flex-col justify-center items-center py-20">
       <div className="absolute top-0 left-0 p-5">
         <Link href="/">
           <i className="fa-solid fa-circle-left text-6xl text-violet-700 bg-white rounded-full"></i>
